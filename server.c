@@ -14,12 +14,16 @@
 
 int main(int argc, char *argv[])
 {
-    if(argc != 3){
-        printf("Pour utiliser ce programme, vous devez taper ./server <port_serveurUDP> <port_Data>\n");
+    if(argc != 2){
+        printf("Pour utiliser ce programme, vous devez taper ./server <port_serveurUDP>\n");
         exit(-1);
     }
     int portBis = atoi(argv[1]);
-    int portData = atoi(argv[2]);
+    /* if(portBis<1000||portBis>9999){
+        printf("<port_serveurUDP> doit être compris entre 1000 et 9999\n");
+        exit(-1);
+    } */
+    int portData = 5678;
 
     //SocketServ2
     int mySocketServ2 = socket(AF_INET,SOCK_DGRAM, 0);
@@ -121,7 +125,7 @@ int main(int argc, char *argv[])
             }
 
             //envoi du SYN-ACK avec le num de Port
-            strcpy(mySendBuffer, "SYN-ACK_");
+            strcpy(mySendBuffer, "SYN-ACK");
             char portDataS[10];
             sprintf(portDataS,"%d", portData);
             strcat(mySendBuffer,portDataS);
@@ -189,7 +193,7 @@ int main(int argc, char *argv[])
                     //int lecture =1;
                     while(ftell(inputFile)<size){//modifier la condition pour dire qu'on sort de la boucle quand on a reçu tous les acquittements.
                         myTimer.tv_sec = 0;
-                        myTimer.tv_usec = 2*RTT.tv_usec;
+                        myTimer.tv_usec = 4*RTT.tv_usec;
                         printf("\n******SEGMENT*******\n");
                         //le serveur lit le fichier dans un buffer
                         size_t nbOctetsLus = fread(myFichierBuffer,1,tailleBloc,inputFile);
