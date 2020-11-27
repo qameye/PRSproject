@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
         int nbMax = 0;        
         for (int i=0; i<10; i++){
             if(sockBoard[i]>nbMax)
-                nbMax = sockBoard[i];
+                nbMax = sockBoard[i]; //trouver le plus grand descripteur de fichier
         }
         nbMax = max(nbMax, mySocketServ2);
         printf("nbMax : %d\n", nbMax);
@@ -151,9 +151,9 @@ int main(int argc, char *argv[])
             sockBoard[index]=mySocketData;
         }
 
-        for (int i = 0; i < 10; i++){
+        for (int i = 0; i < 10; i++){ 
             if(sockBoard[i]!=0){
-                if(FD_ISSET(sockBoard[i],&mySetSocket)){
+                if(FD_ISSET(sockBoard[i],&mySetSocket)){ //gestion de la com des données avec 1 client
                     int udpData = sockBoard[i];
                     //traiter le recvfrom
                     memset(myReceiveBuffer,0, sizeof(myReceiveBuffer));
@@ -172,12 +172,12 @@ int main(int argc, char *argv[])
                     int size=ftell(inputFile);
                     printf("Taille fichier = %d octets\n",size);
                     char myFichierBuffer[size];
-                    size_t tailleBloc = 500;
+                    size_t tailleBloc = 500; 
                     //size_t nbBlocs = size/500;
                     //int nbBlocsLus = 0;
                     fseek(inputFile,0, SEEK_SET);
                     char bufferSequence[6];
-                    char bufferSegment[1000];
+                    char bufferSegment[1000]; //buffer pour envoyer le bout de fichier et n° seq
                     char bufferCheckSeq[6];
                     int countSeq = 1;
                     //int countAck = 1;
@@ -187,13 +187,13 @@ int main(int argc, char *argv[])
                     struct timeval t2;     
                     struct timeval RTT;
                     RTT.tv_sec = 0;
-                    RTT.tv_usec = 5000;
+                    RTT.tv_usec = 5000; //déterminer une valeur plus judicieuse
 
                     
                     //int lecture =1;
                     while(ftell(inputFile)<size){//modifier la condition pour dire qu'on sort de la boucle quand on a reçu tous les acquittements.
                         myTimer.tv_sec = 0;
-                        myTimer.tv_usec = 4*RTT.tv_usec;
+                        myTimer.tv_usec = 4*RTT.tv_usec; // à optimiser
                         printf("\n******SEGMENT*******\n");
                         //le serveur lit le fichier dans un buffer
                         size_t nbOctetsLus = fread(myFichierBuffer,1,tailleBloc,inputFile);
@@ -234,7 +234,9 @@ int main(int argc, char *argv[])
                             memcpy(bufferCheckSeq,myReceiveBuffer+4,6);
                             printf("bufferCheckSeq: %s\n", bufferCheckSeq);
                             //printf("l'acquittement reçu est valide!\n");
-                            countSeq++;
+                            countSeq++; 
+                            //s'assurer que le dernier ACK reçu est égal au numéro de seq du dernier bout envoyé
+
                             /*if(atoi(bufferCheckSeq)==atoi(bufferSequence)){
                                 printf("l'acquittement reçu est valide!\n");
                                 countSeq++;
@@ -248,9 +250,11 @@ int main(int argc, char *argv[])
                             fseek(inputFile, 0, (atoi(bufferSequence)-1)*tailleBloc);
                             printf("curseur : %ld\n",ftell(inputFile));
                             RTT.tv_usec = 5000;
+                            //
 
 
-                        }                      
+                        }     
+                        //idée: faire un tableau VRAI/FAUX des acquittements pour chacun des bouts de chacun                  
                         
                         //incrémenter  le compteur de suivi des ACK
 
