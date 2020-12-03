@@ -8,6 +8,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <math.h>
 #define MAX_CLIENT 3
 #define max(a,b) (a>=b?a:b)
 
@@ -173,7 +174,13 @@ int main(int argc, char *argv[])
                     printf("Taille fichier = %d octets\n",size);
                     char myFichierBuffer[size];
                     size_t tailleBloc = 500; 
-                    //size_t nbBlocs = size/500;
+                    int lastAck;
+                    if(size%tailleBloc!=0){
+                        lastAck = floor(size/tailleBloc)+1;
+                    }else{
+                        lastAck = size/tailleBloc;
+                    }
+                    printf("le dernier ACK attendu est: %d\n",lastAck );
                     //int nbBlocsLus = 0;
                     fseek(inputFile,0, SEEK_SET);
                     char bufferSequence[6];
@@ -190,8 +197,8 @@ int main(int argc, char *argv[])
                     RTT.tv_usec = 5000; //déterminer une valeur plus judicieuse
 
                     
-                    //int lecture =1;
-                    while(ftell(inputFile)<size){//modifier la condition pour dire qu'on sort de la boucle quand on a reçu tous les acquittements.
+                    //On rentre dans la boucle tant que tous les ACK n'ont pas été reçu
+                    while(countSeq<=lastAck){ 
                         myTimer.tv_sec = 0;
                         myTimer.tv_usec = 4*RTT.tv_usec; // à optimiser
                         printf("\n******SEGMENT*******\n");
@@ -227,27 +234,20 @@ int main(int argc, char *argv[])
                             recvfrom(udpData, myReceiveBuffer, sizeof(myReceiveBuffer), 0, (struct sockaddr *)&AddrClUdp, &len);
                             printf("l'acquittement reçu par le serveur est : %s\n", myReceiveBuffer);
                             gettimeofday(&t2, NULL);
-                            RTT.tv_usec = t2.tv_usec - t1.tv_usec;
+                            RTT.tv_usec = abs(t2.tv_usec - t1.tv_usec);  //Pq le RTT devient négatif par moment?
                             printf("Le nouveau RTT déterminé est: %ld\n",RTT.tv_usec);                            
-                            //vérifier qu'on a reçu le bon acquittement, sinon, réenvoyer le bout de fichier.
                             memset(bufferCheckSeq, 0, sizeof(bufferCheckSeq));
-                            memcpy(bufferCheckSeq,myReceiveBuffer+4,6);
-                            printf("bufferCheckSeq: %s\n", bufferCheckSeq);
-                            //printf("l'acquittement reçu est valide!\n");
-                            countSeq++; 
-                            //s'assurer que le dernier ACK reçu est égal au numéro de seq du dernier bout envoyé
-
-                            /*if(atoi(bufferCheckSeq)==atoi(bufferSequence)){
-                                printf("l'acquittement reçu est valide!\n");
-                                countSeq++;
-                            } else{
-                                printf("L'acquittement n°%d n'a pas été reçu!\n",atoi(bufferSequence));
-                                printf("Le segment %d va être réémis.\n",atoi(bufferSequence));
-                                fseek(inputFile, 0, (atoi(bufferSequence)-1)*tailleBloc);
-                            }*/
+                            memcpy(bufferCheckSeq,myReceiveBuffer+3,6);
+                            countSeq = atoi(bufferCheckSeq) +1; //ou countSeq++
+                            //fseek(inputFile,0,(countSeq-1)*tailleBloc); 
+                            printf("countSeq: %d\n",countSeq);
                         } else{
                             printf("Le segment %d va être retransmis, timeout!\n",atoi(bufferSequence));
-                            fseek(inputFile, 0, (atoi(bufferSequence)-1)*tailleBloc);
+                            printf("valeur fseek: %ld\n",(atoi(bufferSequence)-1)*tailleBloc);
+                            //ATTENTION FAUX: int f = fseek(inputFile, 0, (atoi(bufferSequence)-1)*tailleBloc);
+                            int f = fseek(inputFile, (atoi(bufferSequence)-1)*tailleBloc,SEEK_SET);
+                            if(f<0)
+                                perror("erreur fseek\n");
                             printf("curseur : %ld\n",ftell(inputFile));
                             RTT.tv_usec = 5000;
                             //
@@ -259,10 +259,12 @@ int main(int argc, char *argv[])
                         //incrémenter  le compteur de suivi des ACK
 
                     }
+                    printf("\n\nLe client a reçu l'intégralité du fichier demandé\n\n\n");
                     memset(bufferSegment,0,sizeof(bufferSegment));
-                    memcpy(bufferSegment, "end",3);
+                    memcpy(bufferSegment, "FIN",3);
                     sendto(udpData,bufferSegment,3, 0, (struct sockaddr *) &AddrClUdp, len);
                     fclose(inputFile);
+                    sockBoard[i]=0;
                 }
 
             }           
