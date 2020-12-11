@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
                 perror("erreur valeur du binding socketData, la valeur est négative");
                 exit(-1);
             }
-
+                        
             //envoi du SYN-ACK avec le num de Port
             strcpy(mySendBuffer, "SYN-ACK");
             char portDataS[10];
@@ -195,31 +195,30 @@ int main(int argc, char *argv[])
                     struct timeval RTT;
                     RTT.tv_sec = 0;
                     RTT.tv_usec = 5000; //déterminer une valeur plus judicieuse
-
+                    //int alpha = 0,9; //dans la formule d
+                    //le serveur lit l'intégralité du fichier dans un buffer
+                    size_t nbOctetsLus = fread(myFichierBuffer,1,size,inputFile);
+                    //4 paramètres dont le nb octets qu'on veut lire
+                    //descripteur du fichier, taille du buffer, nbOctet
+                    //fread retourne le nombre de bloc qui sera fait avce le nb octet défini
+                    printf("Nombre d'octets lus dans le fichier:%zu\n",nbOctetsLus);
+                    int curseur = ftell(inputFile);
+                    printf("Le curseur est à la position : %d\n", curseur);
+                    int offset = 0;
                     
                     //On rentre dans la boucle tant que tous les ACK n'ont pas été reçu
                     while(countSeq<=lastAck){ 
                         myTimer.tv_sec = 0;
                         myTimer.tv_usec = 4*RTT.tv_usec; // à optimiser
-                        printf("\n******SEGMENT*******\n");
-                        //le serveur lit le fichier dans un buffer
-                        size_t nbOctetsLus = fread(myFichierBuffer,1,tailleBloc,inputFile);
-                        printf("Nombre d'octets lus dans le fichier:%zu\n",nbOctetsLus);
-                        int curseur = ftell(inputFile);
-                        printf("Le curseur est à la position : %d\n", curseur);
-                                               
-                        //4 paramètres dont le nb octets qu'on veut lire
-                        //descripteur du fichier, taille du buffer, nbOctet
-                        //fread retourne le nombre de bloc qui sera fait avce le nb octet défini
-                        //création du segment UDP
+                        printf("\n******SEGMENT*******\n");            
+                       //création du segment UDP
                         memset(bufferSegment,0, sizeof(bufferSegment));
                         memset(bufferSequence, 0, sizeof(bufferSequence));
-                        sprintf(bufferSequence, "%d", countSeq);
-                        
+                        sprintf(bufferSequence, "%d", countSeq);                        
                         memcpy(bufferSegment, bufferSequence,6);
-                        memcpy(bufferSegment+6,myFichierBuffer,nbOctetsLus);
+                        memcpy(bufferSegment+6,myFichierBuffer+offset,tailleBloc);
                         //le serveur envoie le morceau de fichier lu
-                        int s = sendto(udpData,bufferSegment, nbOctetsLus+6, 0, (struct sockaddr *) &AddrClUdp, len);
+                        int s = sendto(udpData,bufferSegment, tailleBloc+6, 0, (struct sockaddr *) &AddrClUdp, len);
                         gettimeofday(&t1, NULL);
                         printf("Nombre d'octets envoyés : %d\n",s);
                         //initialisation et activation des bons bits     
@@ -237,27 +236,27 @@ int main(int argc, char *argv[])
                             RTT.tv_usec = abs(t2.tv_usec - t1.tv_usec);  //Pq le RTT devient négatif par moment?
                             printf("Le nouveau RTT déterminé est: %ld\n",RTT.tv_usec);                            
                             memset(bufferCheckSeq, 0, sizeof(bufferCheckSeq));
+                            //
                             memcpy(bufferCheckSeq,myReceiveBuffer+3,6);
                             countSeq = atoi(bufferCheckSeq) +1; //ou countSeq++
                             //fseek(inputFile,0,(countSeq-1)*tailleBloc); 
+                            offset = (countSeq-1)*tailleBloc;
                             printf("countSeq: %d\n",countSeq);
+                            printf("offset : %d\n",offset);
                         } else{
                             printf("Le segment %d va être retransmis, timeout!\n",atoi(bufferSequence));
-                            printf("valeur fseek: %ld\n",(atoi(bufferSequence)-1)*tailleBloc);
+                            //printf("valeur fseek: %ld\n",(atoi(bufferSequence)-1)*tailleBloc);
                             //ATTENTION FAUX: int f = fseek(inputFile, 0, (atoi(bufferSequence)-1)*tailleBloc);
-                            int f = fseek(inputFile, (atoi(bufferSequence)-1)*tailleBloc,SEEK_SET);
-                            if(f<0)
-                                perror("erreur fseek\n");
-                            printf("curseur : %ld\n",ftell(inputFile));
+                            offset = (atoi(bufferSequence)-1)*tailleBloc; 
+                            //int f = fseek(inputFile, (atoi(bufferSequence)-1)*tailleBloc,SEEK_SET);
+                            //if(f<0)
+                              //  perror("erreur fseek\n");
+                            //printf("curseur : %ld\n",ftell(inputFile));
                             RTT.tv_usec = 5000;
                             //
-
-
                         }     
                         //idée: faire un tableau VRAI/FAUX des acquittements pour chacun des bouts de chacun                  
-                        
                         //incrémenter  le compteur de suivi des ACK
-
                     }
                     printf("\n\nLe client a reçu l'intégralité du fichier demandé\n\n\n");
                     memset(bufferSegment,0,sizeof(bufferSegment));
