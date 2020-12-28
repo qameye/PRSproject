@@ -11,6 +11,8 @@
 #include <math.h>
 #define MAX_CLIENT 3
 #define max(a,b) (a>=b?a:b)
+#define ALPHA 0.125 //valeur standard d'après Wikipédia
+#define BETA 0.25 //valeur standard de Wikipédia
 
 
 int main(int argc, char *argv[])
@@ -189,27 +191,32 @@ int main(int argc, char *argv[])
                     int countSeq = 1;
                     //int countAck = 1;
                     fd_set setCurrentClient;
-                    struct timeval myTimer;
-                    struct timeval t1;
-                    struct timeval t2;     
-                    struct timeval RTT;
-                    RTT.tv_sec = 0;
-                    RTT.tv_usec = 5000; //déterminer une valeur plus judicieuse
-                    //int alpha = 0,9; //dans la formule d
+                    long RTTMoyenLong;
+                    long delayLong;
+                    long VarianceRTT;
+                    struct timeval delay;
+                    struct timeval start;
+                    struct timeval end;     
+                    VarianceRTT = 0; //initialisée random                    
+                    long n_lrtt = 0; //mycurrentrtt
+                    RTTMoyenLong= 11000; //sur la base de ce qui a été observé en local
+                    delayLong = RTTMoyenLong + 4*VarianceRTT;
+                    delay.tv_sec = delayLong /1000000;
+                    delay.tv_usec = delayLong - (delayLong/1000000);
+        
                     //le serveur lit l'intégralité du fichier dans un buffer
                     size_t nbOctetsLus = fread(myFichierBuffer,1,size,inputFile);
                     //4 paramètres dont le nb octets qu'on veut lire
                     //descripteur du fichier, taille du buffer, nbOctet
                     //fread retourne le nombre de bloc qui sera fait avce le nb octet défini
                     printf("Nombre d'octets lus dans le fichier:%zu\n",nbOctetsLus);
-                    int curseur = ftell(inputFile);
-                    printf("Le curseur est à la position : %d\n", curseur);
+                    //int curseur = ftell(inputFile);
+                    //printf("Le curseur est à la position : %d\n", curseur);
                     int offset = 0;
                     
                     //On rentre dans la boucle tant que tous les ACK n'ont pas été reçu
                     while(countSeq<=lastAck){ 
-                        myTimer.tv_sec = 0;
-                        myTimer.tv_usec = 4*RTT.tv_usec; // à optimiser
+                        //myTimer =ALPHA*myTimer + (1-ALPHA)*n_lrtt;
                         printf("\n******SEGMENT*******\n");            
                        //création du segment UDP
                         memset(bufferSegment,0, sizeof(bufferSegment));
@@ -219,44 +226,55 @@ int main(int argc, char *argv[])
                         memcpy(bufferSegment+6,myFichierBuffer+offset,tailleBloc);
                         //le serveur envoie le morceau de fichier lu
                         int s = sendto(udpData,bufferSegment, tailleBloc+6, 0, (struct sockaddr *) &AddrClUdp, len);
-                        gettimeofday(&t1, NULL);
-                        printf("Nombre d'octets envoyés : %d\n",s);
+                        gettimeofday(&start, NULL);
+                        printf("Segment %s envoyé de %d octets\n",bufferSequence, s);
                         //initialisation et activation des bons bits     
                         FD_ZERO(&setCurrentClient);
                         //FD_SET(mySocketServ, &mySetSocket);
                         FD_SET(udpData, &setCurrentClient);
-                        select(udpData+1, &setCurrentClient,NULL,NULL,&myTimer);
+                        select(udpData+1, &setCurrentClient,NULL,NULL,&delay);
                         if(FD_ISSET(udpData,&setCurrentClient)){
                             //le serveur attend un acquittement pour le morceau de fichier envoyé
                             //recvfrom()
                             memset(myReceiveBuffer,0, sizeof(myReceiveBuffer));
                             recvfrom(udpData, myReceiveBuffer, sizeof(myReceiveBuffer), 0, (struct sockaddr *)&AddrClUdp, &len);
-                            printf("l'acquittement reçu par le serveur est : %s\n", myReceiveBuffer);
-                            gettimeofday(&t2, NULL);
-                            RTT.tv_usec = abs(t2.tv_usec - t1.tv_usec);  //Pq le RTT devient négatif par moment?
-                            printf("Le nouveau RTT déterminé est: %ld\n",RTT.tv_usec);                            
+                            printf("Acquittement reçu : %s\n", myReceiveBuffer);
+                            gettimeofday(&end, NULL);
+                            
+                             //Calcul du RTT 
+                            /*n_lrtt = (end.tv_sec - start.tv_sec)*1000000 + (end.tv_usec-start.tv_usec); // current rtt
+							RTT.tv_sec = myTimer / 1000000;
+							RTT.tv_usec = myTimer - (myTimer / 1000000);*/
+                            
+                            //calcul RTT par Quentin
+                            n_lrtt = (end.tv_sec - start.tv_sec)*1000000 + (end.tv_usec-start.tv_usec); // current rtt
+							printf("RTT échantillon déterminé : %ld microsecondes\n",n_lrtt);
+                            RTTMoyenLong =((1-ALPHA)*RTTMoyenLong + ALPHA*n_lrtt);
+                            VarianceRTT = (1-BETA)*VarianceRTT + BETA * abs(RTTMoyenLong - n_lrtt);
+                            printf("Variance déterminée : %ld\n", VarianceRTT);
+                            delayLong = RTTMoyenLong + 4*VarianceRTT;
+                            delay.tv_sec = delayLong / 1000000;
+							delay.tv_usec = delayLong - (delayLong / 1000000);
+                            printf("Timer mis à jour: %ld secondes %ld microsecondes\n", delay.tv_sec, delay.tv_usec);
+
                             memset(bufferCheckSeq, 0, sizeof(bufferCheckSeq));
-                            //
-                            memcpy(bufferCheckSeq,myReceiveBuffer+3,6);
+                            memcpy(bufferCheckSeq,myReceiveBuffer+4,6);
                             countSeq = atoi(bufferCheckSeq) +1; //ou countSeq++
                             //fseek(inputFile,0,(countSeq-1)*tailleBloc); 
                             offset = (countSeq-1)*tailleBloc;
-                            printf("countSeq: %d\n",countSeq);
-                            printf("offset : %d\n",offset);
+                            printf("CountSeq: %d\n",countSeq);
+                            printf("Offset : %d\n",offset);
                         } else{
-                            printf("Le segment %d va être retransmis, timeout!\n",atoi(bufferSequence));
+                            printf("TIMEOUT!!!\nRetransmission du segment %d\n",atoi(bufferSequence));
                             //printf("valeur fseek: %ld\n",(atoi(bufferSequence)-1)*tailleBloc);
                             //ATTENTION FAUX: int f = fseek(inputFile, 0, (atoi(bufferSequence)-1)*tailleBloc);
                             offset = (atoi(bufferSequence)-1)*tailleBloc; 
-                            //int f = fseek(inputFile, (atoi(bufferSequence)-1)*tailleBloc,SEEK_SET);
-                            //if(f<0)
-                              //  perror("erreur fseek\n");
-                            //printf("curseur : %ld\n",ftell(inputFile));
-                            RTT.tv_usec = 5000;
-                            //
+                                                        
+                            //RTT par Quentin
+                            delay.tv_sec = delayLong/1000000;
+                            delay.tv_usec = delayLong;
                         }     
-                        //idée: faire un tableau VRAI/FAUX des acquittements pour chacun des bouts de chacun                  
-                        //incrémenter  le compteur de suivi des ACK
+                        
                     }
                     printf("\n\nLe client a reçu l'intégralité du fichier demandé\n\n\n");
                     memset(bufferSegment,0,sizeof(bufferSegment));
