@@ -13,6 +13,7 @@
 #define max(a,b) (a>=b?a:b)
 #define ALPHA 0.125 //valeur standard d'après Wikipédia
 #define BETA 0.25 //valeur standard de Wikipédia
+#define WINDOWSIZE 20
 
 
 int main(int argc, char *argv[])
@@ -169,7 +170,7 @@ int main(int argc, char *argv[])
             int size=ftell(inputFile);
             //printf("Taille fichier = %d octets\n",size);
             char myFichierBuffer[size];
-            size_t tailleBloc = 500; 
+            size_t tailleBloc = 1494; 
             int lastAck;
             if(size%tailleBloc!=0){
                 lastAck = floor(size/tailleBloc)+1;
@@ -179,7 +180,7 @@ int main(int argc, char *argv[])
             //printf("le dernier ACK attendu est: %d\n",lastAck );
             fseek(inputFile,0, SEEK_SET);
             char bufferSequence[6];
-            char bufferSegment[1000]; //buffer pour envoyer le bout de fichier et n° seq
+            char bufferSegment[2000]; //buffer pour envoyer le bout de fichier et n° seq
             char bufferCheckSeq[6];
             int countSeq = 1;
             fd_set setCurrentClient;
@@ -205,7 +206,7 @@ int main(int argc, char *argv[])
             //int curseur = ftell(inputFile);
             //printf("Le curseur est à la position : %d\n", curseur);
             int offset = 0;
-            int tailleFen = 500; //trouver la meilleure valeur.
+            int tailleFen = WINDOWSIZE; //trouver la meilleure valeur.
             int ackRecus[tailleFen];
             int ackMax = 0;
             int tailleBlocEC = tailleBloc;
