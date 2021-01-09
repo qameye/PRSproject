@@ -14,6 +14,7 @@
 #define ALPHA 0.125 //valeur standard d'après Wikipédia
 #define BETA 0.25 //valeur standard de Wikipédia
 #define WINDOWSIZE 20
+#define TAILLELUEMAX 10000000
 
 
 int main(int argc, char *argv[])
@@ -197,7 +198,11 @@ int main(int argc, char *argv[])
             delay.tv_sec = delayLong /1000000;
             delay.tv_usec = delayLong - (delayLong/1000000);
         
+            /* int nbLoop = size/TAILLELUEMAX;
             //le serveur lit l'intégralité du fichier dans un buffer
+            for(int i = 0; i<nbLoop;i++){
+
+            } */
             size_t nbOctetsLus = fread(myFichierBuffer,1,size,inputFile);
             //4 paramètres dont le nb octets qu'on veut lire
             //descripteur du fichier, taille du buffer, nbOctet
