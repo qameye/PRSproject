@@ -22,10 +22,6 @@ int main(int argc, char *argv[])
         exit(-1);
     }
     int portBis = atoi(argv[1]);
-    /* if(portBis<1000||portBis>9999){
-        printf("<port_serveurUDP> doit être compris entre 1000 et 9999\n");
-        exit(-1);
-    } */
     int portData = 5678;
 
     //SocketServ2
@@ -38,9 +34,8 @@ int main(int argc, char *argv[])
     //detection d'une erreur à la création de la socket
     if (mySocketServ2 < 0){
         exit(-1);
-    }      
-    
-    printf("Valeur du descripteur de la socketServeurUDP : %d\n", mySocketServ2);  
+    }    
+    //printf("Valeur du descripteur de la socketServeurUDP : %d\n", mySocketServ2);  
    
     //remise à 0 de la structure myAddr2 et AddrClUdp
     struct sockaddr_in myAddr2 ;
@@ -54,12 +49,12 @@ int main(int argc, char *argv[])
     myAddr2.sin_addr.s_addr= htonl(INADDR_ANY) ;
 
     int myBind2 = bind(mySocketServ2, (struct sockaddr*)&myAddr2,sizeof(struct sockaddr_in) );
-    printf("valeur du bindServeurUDP: %d\n", myBind2);
+    //printf("valeur du bindServeurUDP: %d\n", myBind2);
     if (myBind2 < 0){
         perror("erreur valeur du bindServeurUDP négative");
-        exit(-1);}
-    
-    printf("le serveur fonctionne bien \n\n");
+        exit(-1);
+    }
+    //printf("le serveur fonctionne bien \n\n");
 
     char mySendBuffer[500];
     char myReceiveBuffer[500];
@@ -87,10 +82,10 @@ int main(int argc, char *argv[])
                 nbMax = sockBoard[i]; //trouver le plus grand descripteur de fichier
         }
         nbMax = max(nbMax, mySocketServ2);
-        printf("nbMax : %d\n", nbMax);
+        //printf("nbMax : %d\n", nbMax);
         
         int myClient = select(nbMax+1, &mySetSocket, NULL, NULL, NULL); //attente d'une connexion sur 1 des sockets
-        printf("Valeur de select() : %d\n\n", myClient);
+        //printf("Valeur de select() : %d\n\n", myClient);
         if(myClient<0){
             perror("erreur fonction select\n\n");
             exit(-1);
@@ -103,7 +98,7 @@ int main(int argc, char *argv[])
                 perror("3-way handshake mistake at the SYN\n\n");
                 continue;
             } else {
-                printf("Message reçu du client %d : %s\n", udpClient, myReceiveBuffer);
+                //printf("Message reçu du client %d : %s\n", udpClient, myReceiveBuffer);
             }
 
             //création nouvelle socket pour les données
@@ -112,7 +107,7 @@ int main(int argc, char *argv[])
             setsockopt(mySocketData, SOL_SOCKET, SO_REUSEADDR,&reuseTer, sizeof(reuseTer));
             if (mySocketData <0)
                 exit(-1);
-            printf("Valeur du descripteur de la socket Data d'UDP : %d\n", mySocketData);
+            //printf("Valeur du descripteur de la socket Data d'UDP : %d\n", mySocketData);
 
             struct sockaddr_in myAddrData;
             memset((char*)&myAddrData, 0, sizeof(myAddrData));
@@ -121,7 +116,7 @@ int main(int argc, char *argv[])
             myAddrData.sin_addr.s_addr=htonl(INADDR_ANY);
             
             int myBind3 = bind(mySocketData, (struct sockaddr*)&myAddrData,sizeof(struct sockaddr_in) );
-            printf("valeur du bind socket Data: %d\n", myBind3);
+            //printf("valeur du bind socket Data: %d\n", myBind3);
             if (myBind3 < 0){
                 perror("erreur valeur du binding socketData, la valeur est négative");
                 exit(-1);
@@ -132,7 +127,7 @@ int main(int argc, char *argv[])
             char portDataS[10];
             sprintf(portDataS,"%d", portData);
             strcat(mySendBuffer,portDataS);
-            printf("Message envoyé au client de socket %d : %s\n", udpClient, mySendBuffer);
+            //printf("Message envoyé au client de socket %d : %s\n", udpClient, mySendBuffer);
             sendto(udpClient, mySendBuffer, strlen(mySendBuffer), 0, (struct sockaddr *) &AddrClUdp, len); //bien mettre en 1er para le descripteur de la socket de client
             
             //attente réception du ACK
@@ -141,16 +136,16 @@ int main(int argc, char *argv[])
                 perror("3-way handshake mistake at the ACK\n\n");
                 continue;
             } else {
-                printf("Message reçu du client %d : %s\n", udpClient, myReceiveBuffer);
+                //printf("Message reçu du client %d : %s\n", udpClient, myReceiveBuffer);
             }  
-            printf("la phase de connexion entre le client : %d et le serveur est validée!!!\n\n", udpClient);
+            //printf("la phase de connexion entre le client : %d et le serveur est validée!!!\n\n", udpClient);
                         
             int index =0;
             for(int i =0; i<10; i++){
                 if(sockBoard[i]!=0)
                     index++;
             }
-            printf("index de la première case libre de sockBoard: %d\n\n", index);
+            //printf("index de la première case libre de sockBoard: %d\n\n", index);
             sockBoard[index]=mySocketData;
         }
 
@@ -162,18 +157,17 @@ int main(int argc, char *argv[])
                     memset(myReceiveBuffer,0, sizeof(myReceiveBuffer));
                     recvfrom(udpData, myReceiveBuffer, sizeof(myReceiveBuffer), 0, (struct sockaddr *)&AddrClUdp, &len);
                     //printf("taille recue : %d", n);
-                    printf("Le fichier demandé par le client est : %s\n\n", myReceiveBuffer);
+                    //printf("Le fichier demandé par le client est : %s\n\n", myReceiveBuffer);
                     //le serveur ouvre le fichier demandé
                     FILE * inputFile;
                     inputFile = fopen(myReceiveBuffer,"rb");
                     if ( inputFile == NULL ) {
                         perror( "Cannot open file\n");
-                        //exit( 0 );
                     }
                     //taille du fichier et création du buffer
                     fseek (inputFile, 0, SEEK_END);   // non-portable
                     int size=ftell(inputFile);
-                    printf("Taille fichier = %d octets\n",size);
+                    //printf("Taille fichier = %d octets\n",size);
                     char myFichierBuffer[size];
                     size_t tailleBloc = 500; 
                     int lastAck;
@@ -182,14 +176,12 @@ int main(int argc, char *argv[])
                     }else{
                         lastAck = size/tailleBloc;
                     }
-                    printf("le dernier ACK attendu est: %d\n",lastAck );
-                    //int nbBlocsLus = 0;
+                    //printf("le dernier ACK attendu est: %d\n",lastAck );
                     fseek(inputFile,0, SEEK_SET);
                     char bufferSequence[6];
                     char bufferSegment[1000]; //buffer pour envoyer le bout de fichier et n° seq
                     char bufferCheckSeq[6];
                     int countSeq = 1;
-                    //int countAck = 1;
                     fd_set setCurrentClient;
                     long RTTMoyenLong;
                     long delayLong;
@@ -209,74 +201,126 @@ int main(int argc, char *argv[])
                     //4 paramètres dont le nb octets qu'on veut lire
                     //descripteur du fichier, taille du buffer, nbOctet
                     //fread retourne le nombre de bloc qui sera fait avce le nb octet défini
-                    printf("Nombre d'octets lus dans le fichier:%zu\n",nbOctetsLus);
+                    //printf("Nombre d'octets lus dans le fichier:%zu\n",nbOctetsLus);
                     //int curseur = ftell(inputFile);
                     //printf("Le curseur est à la position : %d\n", curseur);
                     int offset = 0;
+                    int tailleFen = 1000; //trouver la meilleure valeur.
+                    int ackRecus[tailleFen];
+                    int ackMax = 0;
+                    int tailleBlocEC = tailleBloc;
                     
                     //On rentre dans la boucle tant que tous les ACK n'ont pas été reçu
-                    while(countSeq<=lastAck){ 
-                        //myTimer =ALPHA*myTimer + (1-ALPHA)*n_lrtt;
-                        printf("\n******SEGMENT*******\n");            
-                       //création du segment UDP
+                    while(countSeq<=lastAck){    
+                        //envoi du premier segment de la fenetre avec lancement du chrono
+                        //printf("\n******SEGMENT*******\n");            
+                        //création du segment UDP
                         memset(bufferSegment,0, sizeof(bufferSegment));
                         memset(bufferSequence, 0, sizeof(bufferSequence));
-                        sprintf(bufferSequence, "%d", countSeq);                        
-                        memcpy(bufferSegment, bufferSequence,6);
-                        memcpy(bufferSegment+6,myFichierBuffer+offset,tailleBloc);
-                        //le serveur envoie le morceau de fichier lu
-                        int s = sendto(udpData,bufferSegment, tailleBloc+6, 0, (struct sockaddr *) &AddrClUdp, len);
-                        gettimeofday(&start, NULL);
-                        printf("Segment %s envoyé de %d octets\n",bufferSequence, s);
-                        //initialisation et activation des bons bits     
+                        if(countSeq<=lastAck){
+                            tailleBlocEC = tailleBloc;
+                            if (countSeq==lastAck){
+                                tailleBlocEC = size%tailleBloc;
+                                //printf("Taille du dernier bloc: %d\n",tailleBlocEC);
+                            }
+                            sprintf(bufferSequence, "%d", countSeq);                        
+                            memcpy(bufferSegment, bufferSequence,6);
+                            memcpy(bufferSegment+6,myFichierBuffer+offset,tailleBlocEC);
+                            int s = sendto(udpData,bufferSegment, tailleBlocEC+6, 0, (struct sockaddr *) &AddrClUdp, len);
+                            gettimeofday(&start, NULL);
+                            //printf("Segment %s envoyé de %d octets\n",bufferSequence, s);
+                            countSeq++;
+                            offset = offset + tailleBlocEC;
+                        }                        
+                        //envoi des autres segments de la fenêtre
+                        for(int j = 0; j<tailleFen-1; j++){
+                            //printf("\n******SEGMENT*******\n");            
+                            //création du segment UDP
+                            memset(bufferSegment,0, sizeof(bufferSegment));
+                            memset(bufferSequence, 0, sizeof(bufferSequence));
+                            if(countSeq<=lastAck){
+                                tailleBlocEC = tailleBloc;
+                                if (countSeq==lastAck){
+                                    tailleBlocEC = size%tailleBloc;
+                                    //printf("Taille du dernier bloc: %d\n",tailleBlocEC);
+                                } 
+                                sprintf(bufferSequence, "%d", countSeq);                        
+                                memcpy(bufferSegment, bufferSequence,6);
+                                memcpy(bufferSegment+6,myFichierBuffer+offset,tailleBlocEC);
+                                int s = sendto(udpData,bufferSegment, tailleBlocEC+6, 0, (struct sockaddr *) &AddrClUdp, len);
+                                //printf("Segment %s envoyé de %d octets\n",bufferSequence, s);
+                                countSeq++;
+                                offset = offset + tailleBlocEC;
+                            }  
+                        }
+                        
+                        //GESTION RECEPTION DES ACK
+                        memset(ackRecus, 0, sizeof(ackRecus)); 
+
                         FD_ZERO(&setCurrentClient);
-                        //FD_SET(mySocketServ, &mySetSocket);
                         FD_SET(udpData, &setCurrentClient);
                         select(udpData+1, &setCurrentClient,NULL,NULL,&delay);
                         if(FD_ISSET(udpData,&setCurrentClient)){
-                            //le serveur attend un acquittement pour le morceau de fichier envoyé
-                            //recvfrom()
+                        //le serveur attend un acquittement pour le morceau de fichier envoyé
+                        //recvfrom()
                             memset(myReceiveBuffer,0, sizeof(myReceiveBuffer));
                             recvfrom(udpData, myReceiveBuffer, sizeof(myReceiveBuffer), 0, (struct sockaddr *)&AddrClUdp, &len);
-                            printf("Acquittement reçu : %s\n", myReceiveBuffer);
+                            //printf("Acquittement reçu : %s\n", myReceiveBuffer);
+                            memset(bufferCheckSeq, 0, sizeof(bufferCheckSeq));
+                            memcpy(bufferCheckSeq,myReceiveBuffer+4,6);
+                            ackRecus[0] = atoi(bufferCheckSeq);
+                            //printf("myReceiveBuffer: %d\n",atoi(bufferCheckSeq));
                             gettimeofday(&end, NULL);
-                            
-                             //Calcul du RTT 
-                            /*n_lrtt = (end.tv_sec - start.tv_sec)*1000000 + (end.tv_usec-start.tv_usec); // current rtt
-							RTT.tv_sec = myTimer / 1000000;
-							RTT.tv_usec = myTimer - (myTimer / 1000000);*/
                             
                             //calcul RTT par Quentin
                             n_lrtt = (end.tv_sec - start.tv_sec)*1000000 + (end.tv_usec-start.tv_usec); // current rtt
-							printf("RTT échantillon déterminé : %ld microsecondes\n",n_lrtt);
+							//printf("RTT échantillon déterminé : %ld microsecondes\n",n_lrtt);
                             RTTMoyenLong =((1-ALPHA)*RTTMoyenLong + ALPHA*n_lrtt);
                             VarianceRTT = (1-BETA)*VarianceRTT + BETA * abs(RTTMoyenLong - n_lrtt);
-                            printf("Variance déterminée : %ld\n", VarianceRTT);
+                            //printf("Variance déterminée : %ld\n", VarianceRTT);
                             delayLong = RTTMoyenLong + 4*VarianceRTT;
                             delay.tv_sec = delayLong / 1000000;
 							delay.tv_usec = delayLong - (delayLong / 1000000);
-                            printf("Timer mis à jour: %ld secondes %ld microsecondes\n", delay.tv_sec, delay.tv_usec);
-
-                            memset(bufferCheckSeq, 0, sizeof(bufferCheckSeq));
-                            memcpy(bufferCheckSeq,myReceiveBuffer+4,6);
-                            countSeq = atoi(bufferCheckSeq) +1; //ou countSeq++
-                            //fseek(inputFile,0,(countSeq-1)*tailleBloc); 
-                            offset = (countSeq-1)*tailleBloc;
-                            printf("CountSeq: %d\n",countSeq);
-                            printf("Offset : %d\n",offset);
+                            //printf("Timer mis à jour: %ld secondes %ld microsecondes\n", delay.tv_sec, delay.tv_usec);
                         } else{
-                            printf("TIMEOUT!!!\nRetransmission du segment %d\n",atoi(bufferSequence));
-                            //printf("valeur fseek: %ld\n",(atoi(bufferSequence)-1)*tailleBloc);
-                            //ATTENTION FAUX: int f = fseek(inputFile, 0, (atoi(bufferSequence)-1)*tailleBloc);
-                            offset = (atoi(bufferSequence)-1)*tailleBloc; 
-                                                        
                             //RTT par Quentin
                             delay.tv_sec = delayLong/1000000;
                             delay.tv_usec = delayLong;
-                        }     
-                        
+                        }   
+                        //réception des tailleFen-1 autres ACK
+                        for(int k=0; k<tailleFen-1; k++){
+                            FD_ZERO(&setCurrentClient);
+                            FD_SET(udpData, &setCurrentClient);
+                            select(udpData+1, &setCurrentClient,NULL,NULL,&delay);
+                            if(FD_ISSET(udpData,&setCurrentClient)){
+                            //le serveur attend un acquittement pour le morceau de fichier envoyé
+                            //recvfrom()
+                                memset(myReceiveBuffer,0, sizeof(myReceiveBuffer));
+                                recvfrom(udpData, myReceiveBuffer, sizeof(myReceiveBuffer), 0, (struct sockaddr *)&AddrClUdp, &len);
+                                memset(bufferCheckSeq, 0, sizeof(bufferCheckSeq));
+                                memcpy(bufferCheckSeq,myReceiveBuffer+4,6);
+                                ackRecus[k+1]=atoi(bufferCheckSeq);
+                                //printf("Acquittement reçu : %s\n", myReceiveBuffer);
+                            } else{
+                                //printf("Un ACK de la fenetre n'a pas été reçu\n");
+                                offset = (atoi(bufferSequence)-1)*tailleBloc; 
+                            }  
+                        }
+                        //affichage du tableau des ACK avant le tri croissant
+                        for(int s=0; s<tailleFen;s++){
+                            //printf("case %d des ack reçus : %d\n", s, ackRecus[s]);
+                        }
+                        //récupère la valeur max d'ACK reçu
+                        for(int i=0;i<tailleFen; i++){
+                            if(ackRecus[i]>ackMax){
+                                ackMax = ackRecus[i];
+                            }
+                        }                       
+                        //printf("\nACKMax reçu: %d\n", ackMax);
+                        countSeq = ackMax+1; 
+                        offset = (countSeq-1)*tailleBloc;                       
                     }
-                    printf("\n\nLe client a reçu l'intégralité du fichier demandé\n\n\n");
+                    //printf("\n\nLe client a reçu l'intégralité du fichier demandé\n\n\n");
                     memset(bufferSegment,0,sizeof(bufferSegment));
                     memcpy(bufferSegment, "FIN",3);
                     sendto(udpData,bufferSegment,3, 0, (struct sockaddr *) &AddrClUdp, len);
