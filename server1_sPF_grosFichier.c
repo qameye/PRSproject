@@ -170,7 +170,6 @@ int main(int argc, char *argv[])
             fseek (inputFile, 0, SEEK_END);   // non-portable
             int size=ftell(inputFile);
             //printf("Taille fichier = %d octets\n",size);
-            char myFichierBuffer[size];
             size_t tailleBloc = 1494; 
             int lastAck;
             if(size%tailleBloc!=0){
@@ -215,6 +214,7 @@ int main(int argc, char *argv[])
             int ackRecus[tailleFen];
             int ackMax = 0;
             int tailleBlocEC = tailleBloc;
+            char myFichierBuffer[tailleBloc*tailleFen];
                     
             //On rentre dans la boucle tant que tous les ACK n'ont pas été reçu
             while(countSeq<=lastAck){  
