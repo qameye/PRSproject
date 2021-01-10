@@ -3,17 +3,17 @@ LDLAGS = -g -Wall -DDEBUG
 
 all: main
 
-main: server1.o server1_sPF.o server1_sPF_grosFichier.o
-	gcc ${LDLAGS} server1.o -o server1;
-	gcc ${LDLAGS} server1_sPF.o -o server1_sPF;
-	gcc ${LDLAGS} server1_sPF_grosFichier.o -o server1_sPF_grosFichier;
+main: server.o
+	gcc ${LDLAGS} serveur1-UDPower.o -o serveur1-UDPower;
+	gcc ${LDLAGS} serveur2-UDPower.o -o serveur2-UDPower;
+	gcc ${LDLAGS} serveur3-UDPower.o -o serveur3-UDPower;
 
-server.o: server.c server1_sPF.c server1_sPF_grosFichier.c
-	gcc ${CFLAGS} -c server1.c -o server1.o;
-	gcc ${CFLAGS} -c server1_sPF.c -o server1_sPF.o;
-	gcc ${CFLAGS} -c server1_sPF_grosFichier.c -o server1_sPF_grosFichier.o;
+server.o: serveur1-UDPower.c serveur2-UDPower.c serveur3-UDPower.c
+	gcc ${CFLAGS} -c serveur1-UDPower.c -o serveur1-UDPower.o;
+	gcc ${CFLAGS} -c serveur2-UDPower.c -o serveur2-UDPower.o;
+	gcc ${CFLAGS} -c serveur3-UDPower.c -o serveur3-UDPower.o;
 
 clean:
-	\rm -rf *.o server1  *~
-	\rm -rf *.o server1_sPF  *~
-	\rm -rf *.o server1_sPF_grosFichier  *~
+	\rm -rf *.o serveur1-UDPower  *~
+	\rm -rf *.o serveur2-UDPower  *~
+	\rm -rf *.o serveur3-UDPower  *~
